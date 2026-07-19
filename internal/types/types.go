@@ -15,9 +15,10 @@ type User struct {
 }
 
 type UserCreateRequest struct {
-	Username			string
-	Email				string
-	PasswordHash 		string
+	Username			string			`json:"username"`
+	Email				string			`json:"email"`
+	Password 			string			`json:"password"`
+	ConfirmPassword		string			`json:"confirm_password"`
 }
 
 type File struct {
