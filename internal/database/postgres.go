@@ -1,11 +1,13 @@
 package database
 
-import(
-	"fmt"
+import (
 	"context"
-	"os"
-	"github.com/jackc/pgx/v5"
+	"fmt"
 	"gofs/internal/types"
+	"gofs/internal/validation"
+	"os"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func ConnectDB() (conn *pgx.Conn,err error){
@@ -43,6 +45,19 @@ func GetUsers(conn *pgx.Conn)(users []types.User){
 	return users
 }
 
-func CreateUser(req types.UserCreateRequest){
-	//TODO
+// PseudoCode:
+// 1: Validate User Create Req 2: Insert into Table 3: return user
+func CreateUser(conn *pgx.Conn, userReq types.UserCreateRequest)(error){
+	err := validation.UserCreateRequestValidator(userReq)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Validation Passed")
+
+	_ , err = conn.Exec(context.Background(), `INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3)`, userReq.Username, userReq.Email, userReq.Password)
+
+	if err != nil{
+		return err
+	}
+	return nil
 }
