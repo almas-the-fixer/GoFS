@@ -2,15 +2,14 @@ package database
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"gofs/internal/types"
-	"gofs/internal/validation"
+	"gofs/internal/apperrors"
+	"errors"
 	"os"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func ConnectDB() (conn *pgx.Conn, err error) {
@@ -74,28 +73,16 @@ func GetUsers(conn *pgx.Conn) (users []types.User) {
 	return users
 }
 
-// Some Notes Ill moove Somewhere else later:
+// Some Notes I'll moove Somewhere else later:
 // Exec()     -> Use when you DON'T expect rows back
 // QueryRow() -> Use when you expect EXACTLY ONE row back
 // Query()    -> Use when you expect MULTIPLE rows back
 // PseudoCode:
 // 1: Validate User Create Req 2: Insert into Table 3: return user
-func CreateUser(conn *pgx.Conn, userReq types.UserCreateRequest) (string, error) {
+func InsertUser(conn *pgx.Conn, userReq types.UserCreateRequest) (string, error) {
 	var userID string
-	err := validation.UserCreateRequestValidator(userReq)
-	if err != nil {
-		return "", err
-	}
-	fmt.Println("Handler Validation Passed")
 
-	// Hashing Password Before Storing it
-	hashedPass, err := bcrypt.GenerateFromPassword([]byte(userReq.Password), bcrypt.DefaultCost)
-	if err != nil {
-		fmt.Println("An Error Occures while HASHING password: ", err)
-		return "", err
-	}
-
-	err = conn.QueryRow(context.Background(), `INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3) RETURNING id`, userReq.Username, userReq.Email, hashedPass).Scan(&userID)
+	err := conn.QueryRow(context.Background(), `INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3) RETURNING id`, userReq.Username, userReq.Email, userReq.Password).Scan(&userID)
 
 	//Exec() returns a CommandTag, which contains information like:
 	// INSERT 0 1
@@ -106,10 +93,24 @@ func CreateUser(conn *pgx.Conn, userReq types.UserCreateRequest) (string, error)
 	if err != nil {
 		var pgError *pgconn.PgError	
 		if errors.As(err, &pgError){
-			fmt.Println(pgError.Message)
-			fmt.Println(pgError.Code)
+			if pgError.Code == "23505" {
+				return "", apperrors.ErrUniqueConstraintViolated
+			}
 		}
 		return "", err
 	}
 	return  userID,nil
+}
+
+func FindUserByEmail(conn *pgx.Conn, userEmail string) (string, error){
+	var hashedPass, email string
+	err := conn.QueryRow(context.Background(), "SELECT email, password_hash FROM users WHERE email = $1", userEmail).Scan(&email, &hashedPass)
+	if err != nil {
+		fmt.Println("AN ERROR OCCURED: ", err)
+		return "", err
+	}
+	// Temporary Printing email
+	fmt.Println("User Found!: ", email)
+
+	return hashedPass, nil
 }
