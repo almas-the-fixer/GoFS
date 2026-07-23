@@ -30,3 +30,8 @@ type File struct {
 	MimeType			string
 	StoragePath			string
 }
+
+type LoginRequest struct {
+	Email				string				`json:"email"`
+	Password			string				`json:"password:`
+}
