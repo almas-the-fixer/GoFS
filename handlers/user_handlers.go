@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"gofs/internal/database"
 	"gofs/internal/types"
+	"gofs/internal/validation"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Get One User
@@ -50,7 +52,20 @@ func CreateUser(conn *pgx.Conn) fiber.Handler {
 		if err := req.Bind().Body(user); err != nil {
 			return fiber.ErrBadRequest
 		}
-		id, err := database.CreateUser(conn, *user)
+		err := validation.UserCreateRequestValidator(*user)
+		if err != nil {
+			return err
+		}
+		// Hashing Password Before Storing it
+		hashedPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			fmt.Println("An Error Occures while HASHING password: ", err)
+			return err
+		}
+		
+		// Need to change this because its mutating the fields and user.Password now contains hashedPassword, that can be confusing so later on needs refactor
+		user.Password = string(hashedPass)
+		id, err := database.InsertUser(conn, *user)
 		if err != nil {
 			fmt.Println("An Error Occured: ", err)
 			return req.Status(401).JSON(fiber.Map{"status": "Bad request"})
