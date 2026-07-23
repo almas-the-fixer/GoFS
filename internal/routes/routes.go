@@ -21,4 +21,7 @@ func RegisterRoutes(app *fiber.App, conn *pgx.Conn) {
 	app.Get("/users", handlers.GetUsers(conn))
 	app.Delete("/users/:id", handlers.DeleteUser(conn))
 	app.Post("/users", handlers.CreateUser(conn))
+
+	// Auth Routes for User
+	app.Post("/login", handlers.Login(conn))
 }
