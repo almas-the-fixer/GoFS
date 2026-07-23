@@ -33,5 +33,5 @@ type File struct {
 
 type LoginRequest struct {
 	Email				string				`json:"email"`
-	Password			string				`json:"password:`
+	Password			string				`json:"password":`
 }
