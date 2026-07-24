@@ -102,15 +102,15 @@ func InsertUser(conn *pgx.Conn, userReq types.UserCreateRequest) (string, error)
 	return  userID,nil
 }
 
-func FindUserByEmail(conn *pgx.Conn, userEmail string) (string, error){
-	var hashedPass, email string
-	err := conn.QueryRow(context.Background(), "SELECT email, password_hash FROM users WHERE email = $1", userEmail).Scan(&email, &hashedPass)
+func FindUserByEmail(conn *pgx.Conn, userEmail string) (string, string, error){
+	var hashedPass, email, userID string
+	err := conn.QueryRow(context.Background(), "SELECT id, email, password_hash FROM users WHERE email = $1", userEmail).Scan(&userID, &email, &hashedPass)
 	if err != nil {
 		fmt.Println("AN ERROR OCCURED: ", err)
-		return "", err
+		return "", "", err
 	}
 	// Temporary Printing email
 	fmt.Println("User Found!: ", email)
 
-	return hashedPass, nil
+	return userID, hashedPass, nil
 }
