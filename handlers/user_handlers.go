@@ -3,12 +3,9 @@ package handlers
 import (
 	"fmt"
 	"gofs/internal/database"
-	"gofs/internal/types"
-	"gofs/internal/validation"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Get One User
@@ -42,34 +39,5 @@ func DeleteUser(conn *pgx.Conn) fiber.Handler {
 		}
 		fmt.Println("Deleted Successfullly")
 		return nil
-	}
-}
-
-// Create a User
-func CreateUser(conn *pgx.Conn) fiber.Handler {
-	return func(req fiber.Ctx) error {
-		user := new(types.UserCreateRequest)
-		if err := req.Bind().Body(user); err != nil {
-			return fiber.ErrBadRequest
-		}
-		err := validation.UserCreateRequestValidator(*user)
-		if err != nil {
-			return err
-		}
-		// Hashing Password Before Storing it
-		hashedPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-		if err != nil {
-			fmt.Println("An Error Occures while HASHING password: ", err)
-			return err
-		}
-		
-		// Need to change this because its mutating the fields and user.Password now contains hashedPassword, that can be confusing so later on needs refactor
-		user.Password = string(hashedPass)
-		id, err := database.InsertUser(conn, *user)
-		if err != nil {
-			fmt.Println("An Error Occured: ", err)
-			return req.Status(401).JSON(fiber.Map{"status": "Bad request"})
-		}
-		return req.Status(201).JSON(fiber.Map{"status": "user created successfully", "user_id": id})
 	}
 }
