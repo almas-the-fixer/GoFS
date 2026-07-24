@@ -5,6 +5,7 @@ import (
 	"gofs/internal/database"
 	"gofs/internal/types"
 	"gofs/internal/validation"
+	"gofs/utils"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
@@ -51,7 +52,7 @@ func Login(conn *pgx.Conn) fiber.Handler{
 		}
 
 		// User Exists ?
-		dbPassHash, err := database.FindUserByEmail(conn, loginReq.Email)
+		userID, dbPassHash, err := database.FindUserByEmail(conn, loginReq.Email)
 		if err != nil {
 			fmt.Println("Error Occured When Finding user from DB", err)
 			return err
@@ -63,6 +64,11 @@ func Login(conn *pgx.Conn) fiber.Handler{
 			fmt.Println("Passsword Doesnt Match with hash!", err)
 			return err
 		}
-		return req.Status(200).JSON(fiber.Map{"status": "login successfull!"})
+
+		token, err := utils.GenerateJWT(userID, loginReq.Email)
+		if err != nil {
+			return err
+		}
+		return req.Status(200).JSON(fiber.Map{"token": token})
 	}
 }
